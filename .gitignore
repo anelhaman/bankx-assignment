@@ -1,0 +1,48 @@
+# Node.js
+node_modules/
+.npm/
+.next/
+.env*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.local
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.backup
+.terraform.lock.hcl
+
+# VSCode
+.vscode/
+
+# Build output
+out/
+dist/
+
+# Misc
+*.swp
+*.swo
+.idea/
+
+# Ignore sensitive files
+secrets.*
+
+# Ignore test coverage
+coverage/
+
+# Ignore generated files
+*.generated.*
