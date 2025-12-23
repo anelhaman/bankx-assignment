@@ -1,0 +1,219 @@
+name: Terraform Infrastructure Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'main.tf'
+      - 'variables.tf'
+      - 'outputs.tf'
+      - 'app_gateway.tf'
+      - 'monitoring.tf'
+      - 'terraform.tfvars'
+      - 'modules/**'
+      - '.github/workflows/terraform-infrastructure.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'main.tf'
+      - 'variables.tf'
+      - 'outputs.tf'
+      - 'app_gateway.tf'
+      - 'monitoring.tf'
+      - 'terraform.tfvars'
+      - 'modules/**'
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  TERRAFORM_VERSION: 1.6.0
+  ARM_USE_OIDC: true
+  ARM_OIDC_TOKEN: ${{ secrets.AZURE_OIDC_TOKEN }}
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  terraform:
+    name: Terraform Plan & Apply
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Azure OIDC Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
+
+      - name: Initialize Terraform
+        id: init
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.TF_STATE_RG }}" \
+            -backend-config="storage_account_name=${{ secrets.TF_STATE_SA }}" \
+            -backend-config="container_name=${{ secrets.TF_STATE_CONTAINER }}" \
+            -backend-config="key=terraform.tfstate"
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: true
+
+      - name: Validate Terraform
+        id: validate
+        run: terraform validate
+        continue-on-error: false
+
+      - name: Format check
+        id: fmt
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan \
+            -out=tfplan \
+            -var-file="terraform.tfvars" \
+            -var="acr_username=${{ secrets.ACR_USERNAME }}" \
+            -var="acr_password=${{ secrets.ACR_PASSWORD }}"
+        continue-on-error: false
+
+      - name: Comment PR with plan
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const planFile = 'tfplan';
+            
+            // Get plan summary
+            const { exec } = require('child_process');
+            exec('terraform show -no-color tfplan 2>&1 | head -100', (error, stdout, stderr) => {
+              if (error) {
+                console.error(`Error: ${error.message}`);
+                return;
+              }
+              
+              const comment = `## Terraform Plan 📋\n\n\`\`\`\n${stdout}\n\`\`\``;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            });
+
+      - name: Terraform Apply
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: apply
+        run: |
+          echo "🚀 Applying Terraform configuration..."
+          terraform apply -auto-approve tfplan
+          echo "apply_status=success" >> $GITHUB_OUTPUT
+        continue-on-error: false
+
+      - name: Capture Outputs
+        if: steps.apply.outcome == 'success'
+        id: outputs
+        run: |
+          terraform output -json > tf_outputs.json
+          echo "Terraform Apply completed successfully"
+          cat tf_outputs.json
+
+      - name: Upload Terraform state
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-state
+          path: |
+            .terraform.lock.hcl
+            tf_outputs.json
+          retention-days: 7
+
+      - name: Create GitHub deployment
+        if: steps.apply.outcome == 'success'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.ref,
+              environment: 'production',
+              required_contexts: [],
+              auto_merge: false,
+              description: 'Terraform Infrastructure Deployment'
+            });
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: 'success',
+              description: 'Infrastructure deployed successfully'
+            });
+
+      - name: Notify Slack (Success)
+        if: success() && github.event_name == 'push'
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "✅ Terraform Infrastructure Pipeline Succeeded",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Terraform Infrastructure Deployment*\n*Status:* ✅ Success\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n*Branch:* ${{ github.ref }}\n*Actor:* ${{ github.actor }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify Slack (Failure)
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "❌ Terraform Infrastructure Pipeline Failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Terraform Infrastructure Deployment*\n*Status:* ❌ Failed\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n*Branch:* ${{ github.ref }}\n*Actor:* ${{ github.actor }}\n*Error:* Check <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|logs>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

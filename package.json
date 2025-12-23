@@ -1,0 +1,22 @@
+{
+  "name": "nodejs-hello",
+  "version": "1.0.0",
+  "description": "Simple Hello World Node.js app running on AKS",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "hello",
+    "world",
+    "nodejs",
+    "aks"
+  ],
+  "author": "DevOps Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
