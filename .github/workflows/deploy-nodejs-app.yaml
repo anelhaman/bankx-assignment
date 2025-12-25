@@ -137,7 +137,7 @@ jobs:
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
         with:
-          version: 'v1.33.3.0'
+          version: 'v1.29.4'
 
       - name: Get AKS credentials
         id: aks
