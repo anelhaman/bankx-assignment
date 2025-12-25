@@ -117,7 +117,7 @@ jobs:
           echo "Image pushed: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
 
       - name: Get AKS credentials
-        uses: azure/aks-set-context@v3
+        uses: azure/aks-set-context@v4
         with:
           resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
           cluster-name: ${{ secrets.AZURE_AKS_CLUSTER_NAME }}
