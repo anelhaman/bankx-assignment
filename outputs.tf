@@ -1,4 +1,3 @@
-
 output "resource_group_id" {
   description = "ID of the resource group"
   value       = module.networking.resource_group_id
@@ -92,4 +91,14 @@ output "monitoring_action_group_id" {
 output "monitoring_action_group_name" {
   description = "Name of the Monitor Action Group"
   value       = module.monitoring.action_group_name
+}
+
+output "appgw_public_ip_id" {
+  description = "ID of the Application Gateway public IP"
+  value       = module.networking.appgw_public_ip_id
+}
+
+output "appgw_public_ip_address" {
+  description = "Public IP address for Application Gateway"
+  value       = module.networking.appgw_public_ip_address
 }
