@@ -69,9 +69,9 @@ jobs:
       - name: Get ACR credentials
         id: acr_creds
         run: |
-          ACR_NAME=${{ secrets.ACR_NAME }}
-          ACR_USERNAME=$(az acr credential show --name ${ACR_NAME} --query username -o tsv)
-          ACR_PASSWORD=$(az acr credential show --name ${ACR_NAME} --query passwords[0].value -o tsv)
+          ACR_USERNAME=${{ secrets.ACR_USERNAME }}
+          ACR_USERNAME=$(az acr credential show --name ${ACR_USERNAME} --query username -o tsv)
+          ACR_PASSWORD=$(az acr credential show --name ${ACR_USERNAME} --query passwords[0].value -o tsv)
           echo "::add-mask::${ACR_PASSWORD}"
           echo "username=${ACR_USERNAME}" >> $GITHUB_OUTPUT
           echo "password=${ACR_PASSWORD}" >> $GITHUB_OUTPUT
@@ -161,9 +161,9 @@ jobs:
 
       - name: Create ACR pull secret
         run: |
-          ACR_NAME=${{ secrets.ACR_NAME }}
-          ACR_USERNAME=$(az acr credential show --name ${ACR_NAME} --query username -o tsv)
-          ACR_PASSWORD=$(az acr credential show --name ${ACR_NAME} --query passwords[0].value -o tsv)
+          ACR_USERNAME=${{ secrets.ACR_USERNAME }}
+          ACR_USERNAME=$(az acr credential show --name ${ACR_USERNAME} --query username -o tsv)
+          ACR_PASSWORD=$(az acr credential show --name ${ACR_USERNAME} --query passwords[0].value -o tsv)
           
           kubectl create secret docker-registry acr-secret \
             --docker-server=${{ env.REGISTRY }} \

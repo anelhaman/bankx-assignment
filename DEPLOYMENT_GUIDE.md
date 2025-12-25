@@ -83,7 +83,7 @@ terraform apply tfplan
 ```bash
 # Get ACR name and credentials:
 az acr list --resource-group bankx-prod-rg --query "[].{name:name,loginServer:loginServer}" -o table
-az acr credential show --resource-group bankx-prod-rg --name <ACR_NAME>
+az acr credential show --resource-group bankx-prod-rg --name <ACR_USERNAME>
 
 # Save these for GitHub Secrets (next step)
 ```
@@ -187,7 +187,7 @@ AZURE_SUBSCRIPTION_ID = <your Azure subscription ID>
 TF_STATE_RG           = bankx-tfstate-rg (from Step 1.5)
 TF_STATE_SA           = bankxtfstate<timestamp> (from Step 1.5)
 TF_STATE_CONTAINER    = tfstate
-ACR_NAME              = <your ACR name>
+ACR_USERNAME              = <your ACR name>
 ACR_LOGIN_SERVER      = <your ACR>.azurecr.io
 AKS_RESOURCE_GROUP    = bankx-prod-rg
 AKS_CLUSTER_NAME      = bankx-aks-prod
