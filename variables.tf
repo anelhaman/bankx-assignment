@@ -61,7 +61,7 @@ variable "aks_cluster_name" {
 variable "aks_node_count" {
   description = "Initial number of nodes in AKS cluster"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "aks_vm_size" {
