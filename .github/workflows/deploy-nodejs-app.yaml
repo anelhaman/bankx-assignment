@@ -169,18 +169,23 @@ jobs:
             --docker-server=${{ env.REGISTRY }} \
             --docker-username=${ACR_USERNAME} \
             --docker-password=${ACR_PASSWORD} \
-            --docker-email=devops@bankx.com \
+            --docker-email=rachen.phengsang@gmail.com \
             --namespace=${{ env.NAMESPACE }} \
             --dry-run=client -o yaml | kubectl apply -f -
           
           echo "✅ ACR pull secret created/updated"
 
+      - name: Apply Kubernetes manifests
+        run: |
+          echo "Applying Kubernetes manifests from k8s/ folder..."
+          kubectl apply -f k8s/ -n ${{ env.NAMESPACE }}
+          echo "✅ Kubernetes manifests applied"
+
       - name: Update deployment image
         run: |
           kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} \
             ${{ env.DEPLOYMENT_NAME }}=${{ needs.build-and-push.outputs.image_uri }}:${{ needs.build-and-push.outputs.image_tag }} \
-            --namespace=${{ env.NAMESPACE }} \
-            --record
+            --namespace=${{ env.NAMESPACE }}
           
           echo "✅ Deployment image updated to: ${{ needs.build-and-push.outputs.image_uri }}:${{ needs.build-and-push.outputs.image_tag }}"
 
