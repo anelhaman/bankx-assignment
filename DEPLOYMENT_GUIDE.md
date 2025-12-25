@@ -117,6 +117,64 @@ kubectl get svc nodejs-hello -n bankx-app
 
 ---
 
+## Required GitHub Secrets for Azure Login
+
+To enable the pipeline to authenticate with Azure, you must add these secrets to your GitHub repository:
+
+Go to: GitHub repo → Settings → Secrets and variables → Actions
+
+Add these secrets:
+```
+AZURE_CLIENT_ID      = <your Azure service principal client ID>
+AZURE_TENANT_ID      = <your Azure tenant ID>
+AZURE_SUBSCRIPTION_ID = <your Azure subscription ID>
+```
+
+- These are required for the Azure login step in the pipeline:
+  - `client-id: ${{ secrets.AZURE_CLIENT_ID }}`
+  - `tenant-id: ${{ secrets.AZURE_TENANT_ID }}`
+  - `subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}`
+
+If any are missing or blank, the pipeline will fail to authenticate with Azure.
+
+---
+
+## How to Get Azure Service Principal Credentials
+
+To obtain the required Azure credentials for GitHub Actions, follow these steps:
+
+### 1. Create a Service Principal (SP) in Azure
+
+Open your terminal and run:
+```bash
+az ad sp create-for-rbac --name "bankx-github-actions" --role contributor --scopes /subscriptions/<your-subscription-id>
+```
+This will output JSON like:
+```
+{
+  "appId": "<AZURE_CLIENT_ID>",
+  "displayName": "bankx-github-actions",
+  "password": "<AZURE_CLIENT_SECRET>",
+  "tenant": "<AZURE_TENANT_ID>"
+}
+```
+
+### 2. Find Your Subscription ID
+```bash
+az account show --query id -o tsv
+```
+
+### 3. Add These Values to GitHub Secrets
+- AZURE_CLIENT_ID: `appId` from above
+- AZURE_TENANT_ID: `tenant` from above
+- AZURE_SUBSCRIPTION_ID: from step 2
+
+Go to: GitHub repo → Settings → Secrets and variables → Actions → New repository secret
+
+Paste each value in the corresponding secret.
+
+---
+
 ## Troubleshooting
 
 ### Issue: "terraform apply" fails or hangs
