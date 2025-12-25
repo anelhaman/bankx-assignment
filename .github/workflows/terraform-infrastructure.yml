@@ -72,19 +72,7 @@ jobs:
             -backend-config="resource_group_name=${{ secrets.TF_STATE_RG }}" \
             -backend-config="storage_account_name=${{ secrets.TF_STATE_SA }}" \
             -backend-config="container_name=${{ secrets.TF_STATE_CONTAINER }}" \
-                console.error(`Error: ${error.message}`);
-                return;
-              }
-              
-              const comment = `## Terraform Plan 📋\n\n\`\`\`\n${stdout}\n\`\`\``;
-              
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: comment
-              });
-            });
+            -backend-config="key=terraform.tfstate"
 
       - name: Terraform Apply
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -112,26 +100,3 @@ jobs:
             .terraform.lock.hcl
             tf_outputs.json
           retention-days: 7
-
-      - name: Create GitHub deployment
-        if: steps.apply.outcome == 'success'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const deployment = await github.rest.repos.createDeployment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.ref,
-              environment: 'production',
-              required_contexts: [],
-              auto_merge: false,
-              description: 'Terraform Infrastructure Deployment'
-            });
-            
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: deployment.data.id,
-              state: 'success',
-              description: 'Infrastructure deployed successfully'
-            });

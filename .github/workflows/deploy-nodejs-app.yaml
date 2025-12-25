@@ -231,10 +231,10 @@ jobs:
       - name: Rollback on failure
         if: failure()
         run: |
-          echo "❌ Deployment failed, attempting rollback..."
+          echo "Deployment failed, attempting rollback..."
           kubectl rollout undo deployment/${{ env.DEPLOYMENT_NAME }} \
             --namespace=${{ env.NAMESPACE }}
-          echo "✅ Rollback completed"
+          echo "Rollback completed"
 
       - name: Upload deployment logs
         if: always()
