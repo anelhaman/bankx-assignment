@@ -126,6 +126,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate REGISTRY variable
+        run: |
+          if [ -z "${{ env.REGISTRY }}" ]; then
+            echo "❌ REGISTRY environment variable is not set. Please set the REGISTRY repository variable or ACR_LOGIN_SERVER secret."
+            exit 1
+          fi
+          echo "✅ REGISTRY is set to: ${{ env.REGISTRY }}"
+
       - name: Azure OIDC Login
         uses: azure/login@v1
         with:
@@ -186,13 +194,22 @@ jobs:
             echo "Deployment ${{ env.DEPLOYMENT_NAME }} already exists. Skipping manifest apply."
           fi
 
+      - name: Debug image reference
+        run: |
+          echo "Image URI: ${{ needs.build-and-push.outputs.image_uri }}"
+          echo "Image Tag: ${{ needs.build-and-push.outputs.image_tag }}"
+          echo "Full image reference: ${{ needs.build-and-push.outputs.image_uri }}:${{ needs.build-and-push.outputs.image_tag }}"
+
       - name: Update deployment image
         run: |
+          IMAGE_FULL="${{ needs.build-and-push.outputs.image_uri }}:${{ needs.build-and-push.outputs.image_tag }}"
+          echo "Setting image to: ${IMAGE_FULL}"
+
           kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} \
-            ${{ env.DEPLOYMENT_NAME }}=${{ needs.build-and-push.outputs.image_uri }}:${{ needs.build-and-push.outputs.image_tag }} \
+            ${{ env.DEPLOYMENT_NAME }}=${IMAGE_FULL} \
             --namespace=${{ env.NAMESPACE }}
           
-          echo "✅ Deployment image updated to: ${{ needs.build-and-push.outputs.image_uri }}:${{ needs.build-and-push.outputs.image_tag }}"
+          echo "✅ Deployment image updated to: ${IMAGE_FULL}"
 
       - name: Rollout status
         id: rollout
