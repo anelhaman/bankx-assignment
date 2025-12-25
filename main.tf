@@ -10,6 +10,9 @@ terraform {
       version = "~> 2.0"
     }
   }
+
+  backend "azurerm" {}
+
 }
 
 provider "azurerm" {
@@ -105,3 +108,4 @@ provider "kubernetes" {
   client_key             = base64decode(module.aks.kube_config[0].client_key)
   cluster_ca_certificate = base64decode(module.aks.kube_config[0].cluster_ca_certificate)
 }
+

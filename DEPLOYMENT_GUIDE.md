@@ -13,10 +13,66 @@ set -x ARM_SUBSCRIPTION_ID (grep AZURE_SUBSCRIPTION_ID azure-secrets.txt | cut -
 echo $ARM_CLIENT_ID
 ```
 
+### Step 1.5: Create Azure Storage for Terraform State
+
+First, create the resource group and storage account to store your Terraform state remotely:
+
+```bash
+# Set variables
+set TFSTATE_RG "bankx-tfstate-rg"
+set STORAGE_ACCOUNT "bankxtfstate$(date +%s)"
+set LOCATION "East Asia"
+
+# Create resource group
+az group create \
+  --name $TFSTATE_RG \
+  --location "$LOCATION"
+
+# Create storage account (must have lowercase letters only, globally unique)
+az storage account create \
+  --resource-group $TFSTATE_RG \
+  --name $STORAGE_ACCOUNT \
+  --sku Standard_LRS \
+  --kind StorageV2 \
+  --https-only true \
+  --min-tls-version TLS1_2
+
+# Create blob container
+az storage container create \
+  --name tfstate \
+  --account-name $STORAGE_ACCOUNT --auth-mode login
+
+# Save these values for later:
+echo "TF_STATE_RG=$TFSTATE_RG" >> azure-secrets.txt
+echo "TF_STATE_SA=$STORAGE_ACCOUNT" >> azure-secrets.txt
+echo "TF_STATE_CONTAINER=tfstate" >> azure-secrets.txt
+
+# Display values
+echo "Resource Group: $TFSTATE_RG"
+echo "Storage Account: $STORAGE_ACCOUNT"
+```
+
+**Important:** Save the storage account name - you'll need it in the next step.
+
+### Step 1.6: Initialize Terraform with Remote Backend
+
+Initialize Terraform and point it to your remote Azure Storage backend:
+
+```bash
+# Get values from your creation (or from azure-secrets.txt):
+set TFSTATE_RG "bankx-tfstate-rg"
+set STORAGE_ACCOUNT "bankxtfstate1766674654"
+
+terraform init -backend-config="resource_group_name=$TFSTATE_RG" -backend-config="storage_account_name=$STORAGE_ACCOUNT" -backend-config="container_name=tfstate" -backend-config="key=terraform.tfstate"
+```
+
+This ensures your local Terraform and GitHub Actions pipeline share the same state file.
+
 ### Step 2: Deploy Infrastructure
 ```bash
 # This creates AKS cluster, ACR, VNet, monitoring (10-15 minutes)
-terraform apply -var-file="terraform.tfvars"
+terraform plan -var-file="terraform.tfvars" -out=tfplan
+terraform apply tfplan
 
 # Type 'yes' when prompted
 ```
@@ -119,23 +175,30 @@ kubectl get svc nodejs-hello -n bankx-app
 
 ## Required GitHub Secrets for Azure Login
 
-To enable the pipeline to authenticate with Azure, you must add these secrets to your GitHub repository:
+To enable the pipeline to authenticate with Azure and access the Terraform state backend, you must add these secrets to your GitHub repository:
 
 Go to: GitHub repo → Settings → Secrets and variables → Actions
 
 Add these secrets:
 ```
-AZURE_CLIENT_ID      = <your Azure service principal client ID>
-AZURE_TENANT_ID      = <your Azure tenant ID>
+AZURE_CLIENT_ID       = <your Azure service principal client ID>
+AZURE_TENANT_ID       = <your Azure tenant ID>
 AZURE_SUBSCRIPTION_ID = <your Azure subscription ID>
+TF_STATE_RG           = bankx-tfstate-rg (from Step 1.5)
+TF_STATE_SA           = bankxtfstate<timestamp> (from Step 1.5)
+TF_STATE_CONTAINER    = tfstate
+ACR_NAME              = <your ACR name>
+ACR_LOGIN_SERVER      = <your ACR>.azurecr.io
+AKS_RESOURCE_GROUP    = bankx-prod-rg
+AKS_CLUSTER_NAME      = bankx-aks-prod
 ```
 
-- These are required for the Azure login step in the pipeline:
-  - `client-id: ${{ secrets.AZURE_CLIENT_ID }}`
-  - `tenant-id: ${{ secrets.AZURE_TENANT_ID }}`
-  - `subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}`
+- `AZURE_*` - Required for the Azure OIDC login step
+- `TF_STATE_*` - Required for Terraform to access the remote state backend
+- `ACR_*` - Required for building and pushing Docker images
+- `AKS_*` - Required for deploying to AKS
 
-If any are missing or blank, the pipeline will fail to authenticate with Azure.
+If any are missing, the pipeline will fail.
 
 ---
 
