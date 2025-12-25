@@ -177,9 +177,14 @@ jobs:
 
       - name: Apply Kubernetes manifests
         run: |
-          echo "Applying Kubernetes manifests from k8s/ folder..."
-          kubectl apply -f k8s/ -n ${{ env.NAMESPACE }}
-          echo "✅ Kubernetes manifests applied"
+          echo "Checking if deployment ${{ env.DEPLOYMENT_NAME }} exists in namespace ${{ env.NAMESPACE }}..."
+          if ! kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }} >/dev/null 2>&1; then
+            echo "Deployment not found. Applying Kubernetes manifests from k8s/ folder..."
+            kubectl apply -f k8s/ -n ${{ env.NAMESPACE }}
+            echo "✅ Kubernetes manifests applied"
+          else
+            echo "Deployment ${{ env.DEPLOYMENT_NAME }} already exists. Skipping manifest apply."
+          fi
 
       - name: Update deployment image
         run: |

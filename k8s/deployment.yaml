@@ -24,7 +24,6 @@ spec:
     spec:
       containers:
       - name: nodejs-hello
-        # IMAGE_TAG will be replaced by pipeline: e.g., myacr.azurecr.io/nodejs-hello:v1.2.3
         image: IMAGE_TAG
         imagePullPolicy: Always
         ports:
