@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: nodejs-hello
-        image: nodejs-hello:latest
+        image: bankxaksprodacr.azurecr.io/nodejs-hello:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
