@@ -19,12 +19,11 @@ resource "azurerm_kubernetes_cluster" "main" {
 
   default_node_pool {
     name           = "default"
-    node_count     = var.aks_node_count
     vm_size        = var.aks_vm_size
     vnet_subnet_id = var.private_subnet_id
 
     enable_auto_scaling = true
-    min_count           = 1
+    min_count           = var.aks_node_count
     max_count           = 5
 
     upgrade_settings {
