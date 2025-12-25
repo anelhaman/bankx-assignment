@@ -1,4 +1,4 @@
-name: Build, Push & Deploy to AKS
+name: Build, Push Image
 
 on:
   push:
