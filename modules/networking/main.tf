@@ -72,6 +72,18 @@ resource "azurerm_network_security_group" "public" {
   }
 
   security_rule {
+    name                       = "AllowAppGatewayManagement"
+    priority                   = 120
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "65200-65535"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
     name                       = "DenyAllInbound"
     priority                   = 4096
     direction                  = "Inbound"

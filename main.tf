@@ -50,7 +50,7 @@ module "monitoring" {
   log_analytics_workspace_name = var.log_analytics_workspace_name
   log_analytics_retention_days = var.log_analytics_retention_days
   app_name                     = var.app_name
-  aks_cluster_id               = "" # Will be updated after AKS creation
+  aks_cluster_id               = ""
   tags                         = var.tags
 
   depends_on = [module.networking]
@@ -75,20 +75,27 @@ module "aks" {
   depends_on = [module.networking, module.monitoring]
 }
 
-# Update monitoring module with AKS cluster ID (due to circular dependency)
-module "monitoring_update" {
-  source = "./modules/monitoring"
+# Create AKS diagnostic setting after AKS is created
+resource "azurerm_monitor_diagnostic_setting" "aks" {
+  name                       = "${var.app_name}-aks-diagnostics"
+  target_resource_id         = module.aks.aks_cluster_id
+  log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
 
-  environment                  = var.environment
-  location                     = var.location
-  resource_group_name          = module.networking.resource_group_name
-  log_analytics_workspace_name = var.log_analytics_workspace_name
-  log_analytics_retention_days = var.log_analytics_retention_days
-  app_name                     = var.app_name
-  aks_cluster_id               = module.aks.aks_cluster_id
-  tags                         = var.tags
+  enabled_log {
+    category = "kube-apiserver"
+  }
 
-  depends_on = [module.aks]
+  enabled_log {
+    category = "kube-controller-manager"
+  }
+
+  enabled_log {
+    category = "kube-scheduler"
+  }
+
+  enabled_log {
+    category = "kube-audit"
+  }
 }
 
 # Configure Kubernetes provider

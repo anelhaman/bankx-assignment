@@ -114,7 +114,7 @@ variable "tags" {
 variable "kubernetes_version" {
   description = "Kubernetes version for AKS"
   type        = string
-  default     = "1.28"
+  default     = "1.33.3"
 }
 
 variable "network_plugin" {

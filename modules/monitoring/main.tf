@@ -41,7 +41,7 @@ resource "azurerm_monitor_metric_alert" "request_count" {
     metric_name            = "requests/count"
     operator               = "GreaterThan"
     threshold              = 1000
-    aggregation            = "Total"
+    aggregation            = "Count"
   }
 
   action {
@@ -53,6 +53,7 @@ resource "azurerm_monitor_metric_alert" "request_count" {
 }
 
 resource "azurerm_monitor_diagnostic_setting" "aks" {
+  count                      = var.aks_cluster_id != "" ? 1 : 0
   name                       = "${var.app_name}-aks-diagnostics"
   target_resource_id         = var.aks_cluster_id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nodejs-hello-config
+  namespace: bankx-app
+data:
+  APP_NAME: "nodejs-hello"
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "info"
+  NODE_ENV: "production"

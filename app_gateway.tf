@@ -1,6 +1,6 @@
 resource "azurerm_application_gateway" "main" {
   name                = var.app_gateway_name
-  location            = module.networking.resource_group_name # Will need to fix this
+  location            = var.location
   resource_group_name = module.networking.resource_group_name
   tags                = var.tags
 
@@ -56,6 +56,12 @@ resource "azurerm_application_gateway" "main" {
     http_listener_name         = "http-listener"
     backend_address_pool_name  = "aks-backend-pool"
     backend_http_settings_name = "http-settings"
+    priority                   = 100
+  }
+
+  ssl_policy {
+    policy_type = "Predefined"
+    policy_name = "AppGwSslPolicy20220101S"
   }
 
   depends_on = [module.networking]

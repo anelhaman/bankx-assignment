@@ -46,3 +46,6 @@ coverage/
 
 # Ignore generated files
 *.generated.*
+
+azure-secrets.txt
+tfplan
