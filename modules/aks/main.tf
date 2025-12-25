@@ -27,6 +27,12 @@ resource "azurerm_kubernetes_cluster" "main" {
     min_count           = 2
     max_count           = 5
 
+    upgrade_settings {
+      drain_timeout_in_minutes      = 0
+      max_surge                     = "10%"
+      node_soak_duration_in_minutes = 0
+    }
+
     tags = var.tags
   }
 
@@ -57,7 +63,7 @@ resource "azurerm_container_registry" "main" {
   name                = replace(lower("${var.aks_cluster_name}acr"), "-", "")
   location            = var.location
   resource_group_name = var.resource_group_name
-  admin_enabled       = false
+  admin_enabled       = true
   sku                 = "Standard"
   tags                = var.tags
 }

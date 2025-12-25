@@ -87,8 +87,20 @@ resource "azurerm_monitor_diagnostic_setting" "app_insights" {
 
   enabled_log {
     category = "AppTraces"
+    retention_policy {
+      enabled = false
+      days    = 0
+    }
   }
 
+  metric {
+    category = "AllMetrics"
+    enabled  = false
+    retention_policy {
+      enabled = false
+      days    = 0
+    }
+  }
 }
 
 resource "azurerm_log_analytics_saved_search" "request_metrics" {
