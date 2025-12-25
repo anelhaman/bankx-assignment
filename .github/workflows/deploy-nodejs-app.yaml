@@ -178,7 +178,7 @@ jobs:
       - name: Ensure deployment exists
         run: |
           kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }} || \
-          kubectl apply -f k8s/deployment.yaml -n ${{ env.NAMESPACE }}
+          kubectl apply -f k8s/deployment.yaml
 
       - name: Update deployment image
         run: |
