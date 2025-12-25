@@ -1,0 +1,146 @@
+name: Deploy Image to AKS
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to deploy (e.g., a3881471a29edeb2f22256bc02f7067f306b9d77 or latest)'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  REGISTRY: ${{ vars.REGISTRY || secrets.ACR_LOGIN_SERVER }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || 'nodejs-hello' }}
+  NAMESPACE: bankx-app
+  DEPLOYMENT_NAME: nodejs-hello
+  ARM_USE_OIDC: true
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  deploy-to-aks:
+    name: Deploy to AKS
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate REGISTRY variable
+        run: |
+          if [ -z "${{ env.REGISTRY }}" ]; then
+            echo "❌ REGISTRY environment variable is not set. Please set the REGISTRY repository variable or ACR_LOGIN_SERVER secret."
+            exit 1
+          fi
+          echo "✅ REGISTRY is set to: ${{ env.REGISTRY }}"
+
+      - name: Azure OIDC Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.29.4'
+
+      - name: Get AKS credentials
+        id: aks
+        run: |
+          az aks get-credentials \
+            --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} \
+            --name ${{ secrets.AKS_CLUSTER_NAME }} \
+            --overwrite-existing
+          echo "kubeconfig_set=true" >> $GITHUB_OUTPUT
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+          echo "✅ Successfully connected to AKS cluster"
+
+      - name: Debug image reference
+        run: |
+          echo "Image Tag: ${{ github.event.inputs.image_tag }}"
+          echo "Full image reference: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.image_tag }}"
+
+      - name: Update deployment image
+        run: |
+          IMAGE_FULL="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.image_tag }}"
+          echo "Deploying image: ${IMAGE_FULL}"
+
+          kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} \
+            ${{ env.DEPLOYMENT_NAME }}=${IMAGE_FULL} \
+            --namespace=${{ env.NAMESPACE }}
+          
+          echo "✅ Deployment image updated to: ${IMAGE_FULL}"
+
+      - name: Rollout status
+        id: rollout
+        run: |
+          echo "⏳ Waiting for rollout to complete..."
+          kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} \
+            --namespace=${{ env.NAMESPACE }} \
+            --timeout=5m
+          echo "✅ Rollout completed successfully"
+          echo "rollout_status=success" >> $GITHUB_OUTPUT
+        continue-on-error: false
+
+      - name: Verify deployment
+        if: steps.rollout.outcome == 'success'
+        run: |
+          echo "🔍 Verifying deployment..."
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app=${{ env.IMAGE_NAME }} -o wide
+          kubectl get svc -n ${{ env.NAMESPACE }}
+          READY_REPLICAS=$(kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }} -o jsonpath='{.status.readyReplicas}')
+          DESIRED_REPLICAS=$(kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.replicas}')
+          echo "Ready replicas: ${READY_REPLICAS}/${DESIRED_REPLICAS}"
+          if [ "${READY_REPLICAS}" == "${DESIRED_REPLICAS}" ]; then
+            echo "✅ All replicas are ready"
+          else
+            echo "⚠️ Not all replicas are ready yet"
+          fi
+
+      - name: Perform health checks
+        if: steps.rollout.outcome == 'success'
+        run: |
+          PODS=$(kubectl get pods -n ${{ env.NAMESPACE }} -l app=${{ env.IMAGE_NAME }} -o jsonpath='{.items[*].metadata.name}')
+          for pod in $PODS; do
+            echo "Checking pod: $pod"
+            kubectl logs $pod -n ${{ env.NAMESPACE }} --tail=20 || true
+            kubectl describe pod $pod -n ${{ env.NAMESPACE }} | grep -A 5 "Events:" || true
+          done
+
+      - name: Get service endpoint
+        if: steps.rollout.outcome == 'success'
+        id: endpoint
+        run: |
+          SERVICE_IP=$(kubectl get svc nodejs-hello -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo "N/A")
+          echo "service_ip=${SERVICE_IP}" >> $GITHUB_OUTPUT
+          echo "✅ Service IP: ${SERVICE_IP}"
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "Deployment failed, attempting rollback..."
+          kubectl rollout undo deployment/${{ env.DEPLOYMENT_NAME }} \
+            --namespace=${{ env.NAMESPACE }}
+          echo "Rollback completed"
+
+      - name: Upload deployment logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-logs
+          path: |
+            deployment-info.txt
+          retention-days: 7
