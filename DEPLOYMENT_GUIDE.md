@@ -79,6 +79,28 @@ terraform apply tfplan
 
 **Wait for terraform to complete.** When done, you'll see "Apply complete!"
 
+AGIC (Application Gateway Ingress Controller) is now automatically enabled during Terraform deployment. No manual steps required!
+
+### Step 2.5: Verify Application Gateway Ingress Controller (AGIC)
+
+After `terraform apply` completes, AGIC should be running. Verify it:
+
+```bash
+# Wait for AGIC pod to start (2-5 minutes)
+kubectl get pods -n kube-system | grep ingress-appgw
+
+# Should show: ingress-appgw-deployment-<hash> 1/1 Running
+```
+
+**Verify Ingress is registered:**
+```bash
+# Check Ingress status
+kubectl describe ingress nodejs-hello-ingress -n bankx-app
+
+# Should show Address: <Application Gateway Public IP>
+# And Rules showing your backend service
+```
+
 ### Step 3: Get ACR Credentials (After Terraform Completes)
 ```bash
 # Get ACR name and credentials:
@@ -163,11 +185,18 @@ az aks get-credentials --resource-group bankx-prod-rg --name bankx-aks-prod
 # Check pods are running
 kubectl get pods -n bankx-app
 
-# Get external IP
-kubectl get svc nodejs-hello -n bankx-app
+# Option 1: Access via Application Gateway (AGIC - Recommended for production)
+# Get Application Gateway public IP
+az network public-ip show -g bankx-prod-rg -n appgw-pip --query ipAddress -o tsv
+# Visit: http://<Application Gateway Public IP>
 
-# Visit: http://<EXTERNAL-IP>
+# Option 2: Access via Service (Direct access - for testing)
+# Get service external IP (if using LoadBalancer)
+kubectl get svc nodejs-hello -n bankx-app
+# Visit: http://<Service External IP>
 ```
+
+**For production:** Use the Application Gateway public IP (AGIC), which provides TLS, WAF, and routing capabilities.
 
 ✅ **Done!** Your app is live!
 
@@ -289,6 +318,50 @@ kubectl get svc nodejs-hello -n bankx-app -w
 # Check events
 kubectl describe svc nodejs-hello -n bankx-app
 ```
+
+### Issue: Getting 502 error from Application Gateway
+
+**Cause:** AGIC (Application Gateway Ingress Controller) may not be properly initialized yet, or the backend service/pods are not running.
+
+**Solution:**
+
+1. **Wait for AGIC to start** (takes 2-5 minutes after terraform apply):
+   ```bash
+   kubectl get pods -n kube-system | grep ingress-appgw
+   # Should show: ingress-appgw-deployment-<hash> 1/1 Running
+   ```
+
+2. **Check if backend pods are running:**
+   ```bash
+   kubectl get pods -n bankx-app
+   kubectl get endpoints nodejs-hello -n bankx-app
+   # Should show pod IPs
+   ```
+
+3. **Verify Ingress is registered:**
+   ```bash
+   kubectl describe ingress nodejs-hello-ingress -n bankx-app
+   # Should show Address: <Application Gateway Public IP>
+   ```
+
+4. **Verify service configuration:**
+   ```bash
+   kubectl get svc nodejs-hello -n bankx-app
+   # Should be type: ClusterIP (not LoadBalancer for AGIC)
+   ```
+
+5. **Check AGIC logs for errors:**
+   ```bash
+   kubectl logs -n kube-system -l app=ingress-azure --tail=50
+   ```
+
+6. **Wait and retry:** Give it 5 minutes after terraform apply completes, then test:
+   ```bash
+   curl http://<Application Gateway Public IP>/
+   # Should return "Hello World"
+   ```
+
+**If still failing:** Check Application Gateway backend health in Azure Portal → Application Gateway → Backend pools → Health probe status.
 
 ---
 

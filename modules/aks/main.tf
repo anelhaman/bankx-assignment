@@ -23,7 +23,6 @@ resource "azurerm_kubernetes_cluster" "main" {
     vm_size        = var.aks_vm_size
     vnet_subnet_id = var.private_subnet_id
 
-    enable_auto_scaling = true
     min_count           = 1
     max_count           = 5
 
@@ -48,6 +47,10 @@ resource "azurerm_kubernetes_cluster" "main" {
     service_cidr        = "10.1.0.0/16"
     outbound_type       = "loadBalancer"
     load_balancer_sku   = "standard"
+  }
+
+  ingress_application_gateway {
+    gateway_id   = var.application_gateway_id
   }
 
   tags = var.tags

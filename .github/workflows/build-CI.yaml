@@ -35,7 +35,7 @@ permissions:
 env:
   REGISTRY: ${{ vars.REGISTRY || secrets.ACR_LOGIN_SERVER }}
   IMAGE_NAME: ${{ vars.IMAGE_NAME || 'nodejs-hello' }}
-  IMAGE_TAG: ${{ github.sha }}
+  IMAGE_TAG: ${{ github.run_number }}
   NAMESPACE: bankx-app
   DEPLOYMENT_NAME: nodejs-hello
   ARM_USE_OIDC: true

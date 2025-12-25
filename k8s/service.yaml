@@ -6,7 +6,7 @@ metadata:
   labels:
     app: nodejs-hello
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 80
     targetPort: 3000

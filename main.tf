@@ -73,9 +73,10 @@ module "aks" {
   network_plugin             = var.network_plugin
   private_subnet_id          = module.networking.private_subnet_id
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
+  application_gateway_id     = azurerm_application_gateway.main.id
   tags                       = var.tags
 
-  depends_on = [module.networking, module.monitoring]
+  depends_on = [module.networking, module.monitoring, azurerm_application_gateway.main]
 }
 
 # Create AKS diagnostic setting after AKS is created

@@ -48,6 +48,11 @@ variable "log_analytics_workspace_id" {
   type        = string
 }
 
+variable "application_gateway_id" {
+  description = "ID of the Application Gateway for AGIC addon"
+  type        = string
+}
+
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)
