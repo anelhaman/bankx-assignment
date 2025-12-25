@@ -12,7 +12,7 @@ IMAGE_NAME="nodejs-hello"
 NAMESPACE="bankx-app"
 DEPLOYMENT_NAME="nodejs-hello"
 
-echo "🚀 Deploying ${IMAGE_NAME}:${IMAGE_TAG} to AKS (${ENVIRONMENT})"
+echo "Deploying ${IMAGE_NAME}:${IMAGE_TAG} to AKS (${ENVIRONMENT})"
 echo "================================================================"
 
 # Check prerequisites
@@ -73,13 +73,13 @@ rm -f k8s/deployment.tmp.yaml
 
 # Wait for rollout
 echo ""
-echo "⏳ Waiting for deployment to be ready..."
+echo "Waiting for deployment to be ready..."
 kubectl rollout status deployment/"$DEPLOYMENT_NAME" \
     --namespace="$NAMESPACE" \
     --timeout=5m
 
 echo ""
-echo "✅ Deployment successful!"
+echo "Deployment successful!"
 echo ""
 echo "=== Pod Status ==="
 kubectl get pods -n "$NAMESPACE" -l app="$IMAGE_NAME"

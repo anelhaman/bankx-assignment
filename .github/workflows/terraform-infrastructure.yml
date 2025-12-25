@@ -62,7 +62,7 @@ jobs:
       - name: Terraform Apply
         id: apply
         run: |
-          echo "🚀 Applying Terraform configuration..."
+          echo "Applying Terraform configuration..."
           terraform apply -auto-approve tfplan
           echo "apply_status=success" >> $GITHUB_OUTPUT
         continue-on-error: false

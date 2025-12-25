@@ -1,6 +1,6 @@
 # BankX AKS Deployment - Complete Guide
 
-## 🚀 Deploy from Scratch (Start Here)
+## Deploy from Scratch (Start Here)
 
 ### Step 1: Set Environment Variables
 ```bash
@@ -198,7 +198,7 @@ kubectl get svc nodejs-hello -n bankx-app
 
 **For production:** Use the Application Gateway public IP (AGIC), which provides TLS, WAF, and routing capabilities.
 
-✅ **Done!** Your app is live!
+**Done!** Your app is live!
 
 ---
 
@@ -526,9 +526,9 @@ latest        ← Always points to latest
 
 ## Next Steps After Setup
 
-1. ✅ Infrastructure deployed (`terraform apply`)
-2. ✅ GitHub Secrets added
-3. ✅ First deployment (`git push origin main`)
+1. Infrastructure deployed (`terraform apply`)
+2. GitHub Secrets added
+3. First deployment (`git push origin main`)
 4. 📊 Monitor: GitHub Actions tab + `kubectl get pods -n bankx-app`
 5. 🌐 Access: Get external IP with `kubectl get svc nodejs-hello -n bankx-app`
 
@@ -536,12 +536,12 @@ latest        ← Always points to latest
 
 ## Key Features
 
-✅ **Automatic deployments** - Every push to main deploys automatically  
-✅ **Image versioning** - Each build gets unique tag  
-✅ **Easy rollbacks** - One command rollback  
-✅ **Zero downtime** - Rolling update strategy  
-✅ **Production monitoring** - Log Analytics + Application Insights  
-✅ **Auto-scaling** - 2-10 pods based on CPU/Memory  
+**Automatic deployments** - Every push to main deploys automatically  
+**Image versioning** - Each build gets unique tag  
+**Easy rollbacks** - One command rollback  
+**Zero downtime** - Rolling update strategy  
+**Production monitoring** - Log Analytics + Application Insights  
+**Auto-scaling** - 2-10 pods based on CPU/Memory  
 
 ---
 

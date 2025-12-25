@@ -122,9 +122,9 @@ jobs:
           if ! kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }} >/dev/null 2>&1; then
             echo "Deployment not found. Applying Kubernetes manifests from k8s/ folder..."
             kubectl apply -f k8s/ -n ${{ env.NAMESPACE }}
-            echo "✅ Kubernetes manifests applied"
+            echo "Kubernetes manifests applied"
           else
             echo "Deployment ${{ env.DEPLOYMENT_NAME }} already exists. Skipping manifest apply."
           fi
           
-          echo "✅ CI pipeline complete. Use 'Deploy Image to AKS (Manual)' workflow to deploy a specific image tag."
+          echo "CI pipeline complete. Use 'Deploy Image to AKS (Manual)' workflow to deploy a specific image tag."

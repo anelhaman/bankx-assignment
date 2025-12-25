@@ -38,7 +38,7 @@ jobs:
             echo "❌ REGISTRY environment variable is not set. Please set the REGISTRY repository variable or ACR_LOGIN_SERVER secret."
             exit 1
           fi
-          echo "✅ REGISTRY is set to: ${{ env.REGISTRY }}"
+          echo "REGISTRY is set to: ${{ env.REGISTRY }}"
 
       - name: Azure OIDC Login
         uses: azure/login@v1
@@ -66,7 +66,7 @@ jobs:
         run: |
           kubectl cluster-info
           kubectl get nodes
-          echo "✅ Successfully connected to AKS cluster"
+          echo "Successfully connected to AKS cluster"
 
       - name: Debug image reference
         run: |
@@ -82,32 +82,32 @@ jobs:
             ${{ env.DEPLOYMENT_NAME }}=${IMAGE_FULL} \
             --namespace=${{ env.NAMESPACE }}
           
-          echo "✅ Deployment image updated to: ${IMAGE_FULL}"
+          echo "Deployment image updated to: ${IMAGE_FULL}"
 
       - name: Rollout status
         id: rollout
         run: |
-          echo "⏳ Waiting for rollout to complete..."
+          echo "Waiting for rollout to complete..."
           kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} \
             --namespace=${{ env.NAMESPACE }} \
             --timeout=5m
-          echo "✅ Rollout completed successfully"
+          echo "Rollout completed successfully"
           echo "rollout_status=success" >> $GITHUB_OUTPUT
         continue-on-error: false
 
       - name: Verify deployment
         if: steps.rollout.outcome == 'success'
         run: |
-          echo "🔍 Verifying deployment..."
+          echo "Verifying deployment..."
           kubectl get pods -n ${{ env.NAMESPACE }} -l app=${{ env.IMAGE_NAME }} -o wide
           kubectl get svc -n ${{ env.NAMESPACE }}
           READY_REPLICAS=$(kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }} -o jsonpath='{.status.readyReplicas}')
           DESIRED_REPLICAS=$(kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.replicas}')
           echo "Ready replicas: ${READY_REPLICAS}/${DESIRED_REPLICAS}"
           if [ "${READY_REPLICAS}" == "${DESIRED_REPLICAS}" ]; then
-            echo "✅ All replicas are ready"
+            echo "All replicas are ready"
           else
-            echo "⚠️ Not all replicas are ready yet"
+            echo "Not all replicas are ready yet"
           fi
 
       - name: Perform health checks
@@ -126,7 +126,7 @@ jobs:
         run: |
           SERVICE_IP=$(kubectl get svc nodejs-hello -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo "N/A")
           echo "service_ip=${SERVICE_IP}" >> $GITHUB_OUTPUT
-          echo "✅ Service IP: ${SERVICE_IP}"
+          echo "Service IP: ${SERVICE_IP}"
 
       - name: Rollback on failure
         if: failure()
