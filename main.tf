@@ -86,18 +86,43 @@ resource "azurerm_monitor_diagnostic_setting" "aks" {
 
   enabled_log {
     category = "kube-apiserver"
+    retention_policy {
+      enabled = false
+      days    = 0
+    }
   }
 
   enabled_log {
     category = "kube-controller-manager"
+    retention_policy {
+      enabled = false
+      days    = 0
+    }
   }
 
   enabled_log {
     category = "kube-scheduler"
+    retention_policy {
+      enabled = false
+      days    = 0
+    }
   }
 
   enabled_log {
     category = "kube-audit"
+    retention_policy {
+      enabled = false
+      days    = 0
+    }
+  }
+
+  metric {
+    category = "AllMetrics"
+    enabled  = false
+    retention_policy {
+      enabled = false
+      days    = 0
+    }
   }
 }
 
