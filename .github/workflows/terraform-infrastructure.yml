@@ -1,32 +1,11 @@
 name: Terraform Infrastructure Pipeline
 
 on:
-  push:
-    branches:
-      - main
-      - develop
-    paths:
-      - 'main.tf'
-      - 'variables.tf'
-      - 'outputs.tf'
-      - 'app_gateway.tf'
-      - 'monitoring.tf'
-      - 'terraform.tfvars'
-      - 'modules/**'
-      - '.github/workflows/terraform-infrastructure.yml'
-  pull_request:
-    branches:
-      - main
-      - develop
-    paths:
-      - 'main.tf'
-      - 'variables.tf'
-      - 'outputs.tf'
-      - 'app_gateway.tf'
-      - 'monitoring.tf'
-      - 'terraform.tfvars'
-      - 'modules/**'
-
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for running Terraform'
+        required: false
 permissions:
   id-token: write
   contents: read
