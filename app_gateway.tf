@@ -45,6 +45,21 @@ resource "azurerm_application_gateway" "main" {
     protocol                            = "Http"
     request_timeout                     = 60
     pick_host_name_from_backend_address = true
+    probe_name                          = "health-probe"
+  }
+
+  probe {
+    name                                = "health-probe"
+    protocol                            = "Http"
+    path                                = "/health"
+    port                                = 80
+    interval                            = 30
+    timeout                             = 30
+    unhealthy_threshold                 = 3
+    pick_host_name_from_backend_http_settings = true
+    match {
+      status_code = ["200"]
+    }
   }
 
   http_listener {
@@ -69,64 +84,4 @@ resource "azurerm_application_gateway" "main" {
   }
 
   depends_on = [module.networking]
-}
-
-# Service for exposing the Node.js app
-resource "kubernetes_service" "nodejs" {
-  metadata {
-    name      = "nodejs-hello-service"
-    namespace = "default"
-    labels = {
-      app = var.app_name
-    }
-  }
-
-  spec {
-    selector = {
-      app = var.app_name
-    }
-
-    port {
-      port        = 80
-      target_port = 3000
-      protocol    = "TCP"
-    }
-
-    type = "ClusterIP"
-  }
-
-  depends_on = [module.aks]
-}
-
-# Ingress for Application Gateway
-resource "kubernetes_ingress_v1" "nodejs" {
-  metadata {
-    name      = "nodejs-ingress"
-    namespace = "default"
-    annotations = {
-      "kubernetes.io/ingress.class"                 = "azure/application-gateway"
-      "appgw.ingress.kubernetes.io/ssl-redirect"    = "false"
-      "appgw.ingress.kubernetes.io/request-timeout" = "60s"
-    }
-  }
-
-  spec {
-    rule {
-      http {
-        path {
-          path = "/*"
-          backend {
-            service {
-              name = kubernetes_service.nodejs.metadata[0].name
-              port {
-                number = 80
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  depends_on = [kubernetes_service.nodejs]
 }
