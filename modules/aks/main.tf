@@ -53,6 +53,10 @@ resource "azurerm_kubernetes_cluster" "main" {
     gateway_id   = var.application_gateway_id
   }
 
+  oms_agent {
+    log_analytics_workspace_id = var.log_analytics_workspace_id
+  }
+
   tags = var.tags
 }
 
